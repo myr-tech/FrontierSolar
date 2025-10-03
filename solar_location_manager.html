@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solar Installation Locations</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
+            padding: 30px;
+            text-align: center;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.95;
+        }
+
+        .controls {
+            padding: 30px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .search-section {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+            padding: 15px 20px;
+            border: 2px solid #667eea;
+            border-radius: 50px;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .search-box:focus {
+            border-color: #764ba2;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(56, 239, 125, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+            color: white;
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(235, 51, 73, 0.4);
+        }
+
+        .add-location-form {
+            display: none;
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+
+        .add-location-form.active {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 20px;
+            animation: slideDown 0.3s ease;
+        }
+
+        .form-fields {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .mini-map-container {
+            background: #f8f9fa;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 2px solid #667eea;
+        }
+
+        .mini-map-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px 15px;
+            font-weight: 600;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        #miniMap {
+            height: 400px;
+            width: 100%;
+            cursor: crosshair;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .content {
+            display: flex;
+            height: 600px;
+        }
+
+        .sidebar {
+            width: 350px;
+            background: #f8f9fa;
+            overflow-y: auto;
+            border-right: 2px solid #e9ecef;
+        }
+
+        .location-item {
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .location-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .location-item.active {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            border-left: 4px solid #667eea;
+        }
+
+        .location-item h3 {
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 1.2em;
+            padding-right: 40px;
+        }
+
+        .location-item p {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        .location-item .date {
+            color: #999;
+            font-size: 0.8em;
+            font-style: italic;
+        }
+
+        .delete-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 5px 12px;
+            font-size: 12px;
+        }
+
+        .map-container {
+            flex: 1;
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        .no-results {
+            padding: 40px;
+            text-align: center;
+            color: #999;
+        }
+
+        .stats {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .help-text {
+            background: #e7f3ff;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+            color: #0066cc;
+        }
+
+            @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+                height: auto;
+            }
+
+            .sidebar {
+                width: 100%;
+                max-height: 300px;
+            }
+
+            .map-container {
+                height: 400px;
+            }
+
+            .search-section {
+                flex-direction: column;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .add-location-form.active {
+                grid-template-columns: 1fr;
+            }
+
+            .mini-map-container {
+                order: -1;
+            }
+
+            #miniMap {
+                height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>☀️ Solar Installation Locations</h1>
+            <p>Manage and track your solar consumer installations</p>
+        </div>
+
+        <div class="controls">
+            <div class="search-section">
+                <input type="text" id="searchBox" class="search-box" placeholder="🔍 Search by consumer name, address, or phone...">
+                <button class="btn btn-primary" onclick="searchLocations()">Search</button>
+                <button class="btn btn-success" onclick="toggleAddForm()">+ Add New Location</button>
+            </div>
+
+            <div id="addLocationForm" class="add-location-form">
+                <div class="form-fields">
+                    <h3 style="margin-bottom: 15px; color: #333;">Add New Consumer Location</h3>
+                    <div class="help-text">
+                        💡 Tip: Click on the map to set location coordinates automatically!
+                    </div>
+                    <div class="form-group">
+                        <label>Consumer Name *</label>
+                        <input type="text" id="consumerName" placeholder="Enter consumer name" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Phone Number</label>
+                            <input type="tel" id="consumerPhone" placeholder="Enter phone number">
+                        </div>
+                        <div class="form-group">
+                            <label>Installation Capacity (kW)</label>
+                            <input type="text" id="installationCapacity" placeholder="e.g., 5 kW">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Address *</label>
+                        <input type="text" id="consumerAddress" placeholder="Enter full address" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Latitude *</label>
+                            <input type="number" step="any" id="latitude" placeholder="e.g., 21.1458" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Longitude *</label>
+                            <input type="number" step="any" id="longitude" placeholder="e.g., 79.0882" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Notes</label>
+                        <textarea id="consumerNotes" placeholder="Additional information..."></textarea>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-success" onclick="saveLocation()">Save Location</button>
+                        <button class="btn btn-primary" onclick="toggleAddForm()">Cancel</button>
+                    </div>
+                </div>
+                <div class="mini-map-container">
+                    <div class="mini-map-header">📍 Click on map to select location</div>
+                    <div id="miniMap"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats">
+            <span id="locationCount">Total Locations: 0</span>
+        </div>
+
+        <div class="content">
+            <div class="sidebar" id="locationList">
+                <div class="no-results">No locations added yet. Click "Add New Location" to get started!</div>
+            </div>
+            <div class="map-container">
+                <div id="map"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        let map;
+        let miniMap;
+        let markers = {};
+        let locations = [];
+        let clickMarker = null;
+        let miniClickMarker = null;
+
+        function initMap() {
+            // Default center (Nagpur, India)
+            map = L.map('map').setView([21.1458, 79.0882], 12);
+
+            // Add OpenStreetMap tiles (free)
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(map);
+
+            loadLocations();
+        }
+
+        function initMiniMap() {
+            if (!miniMap) {
+                miniMap = L.map('miniMap').setView([21.1458, 79.0882], 12);
+
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap',
+                    maxZoom: 19
+                }).addTo(miniMap);
+
+                // Click on mini map to set coordinates
+                miniMap.on('click', function(e) {
+                    document.getElementById('latitude').value = e.latlng.lat.toFixed(6);
+                    document.getElementById('longitude').value = e.latlng.lng.toFixed(6);
+                    
+                    // Remove old marker and add new one
+                    if (miniClickMarker) {
+                        miniMap.removeLayer(miniClickMarker);
+                    }
+                    miniClickMarker = L.marker([e.latlng.lat, e.latlng.lng], {
+                        icon: L.icon({
+                            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+                            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                            iconSize: [25, 41],
+                            iconAnchor: [12, 41],
+                            popupAnchor: [1, -34],
+                            shadowSize: [41, 41]
+                        })
+                    }).addTo(miniMap);
+                });
+            }
+        }
+
+        function toggleAddForm() {
+            const form = document.getElementById('addLocationForm');
+            form.classList.toggle('active');
+            
+            if (form.classList.contains('active')) {
+                // Initialize mini map when form opens
+                setTimeout(() => {
+                    initMiniMap();
+                    miniMap.invalidateSize();
+                }, 100);
+            } else {
+                // Clean up mini map marker when closing
+                if (miniClickMarker) {
+                    miniMap.removeLayer(miniClickMarker);
+                    miniClickMarker = null;
+                }
+            }
+        }
+
+        function saveLocation() {
+            const name = document.getElementById('consumerName').value.trim();
+            const phone = document.getElementById('consumerPhone').value.trim();
+            const address = document.getElementById('consumerAddress').value.trim();
+            const capacity = document.getElementById('installationCapacity').value.trim();
+            const notes = document.getElementById('consumerNotes').value.trim();
+            const lat = parseFloat(document.getElementById('latitude').value);
+            const lng = parseFloat(document.getElementById('longitude').value);
+
+            if (!name || !address || isNaN(lat) || isNaN(lng)) {
+                alert('Please fill in all required fields (Name, Address, Latitude, Longitude)');
+                return;
+            }
+
+            const location = {
+                id: Date.now(),
+                name: name,
+                phone: phone,
+                address: address,
+                capacity: capacity,
+                notes: notes,
+                lat: lat,
+                lng: lng,
+                date: new Date().toLocaleDateString()
+            };
+
+            locations.push(location);
+            saveToStorage();
+            displayLocations();
+            addMarker(location);
+            
+            // Clear form
+            document.getElementById('consumerName').value = '';
+            document.getElementById('consumerPhone').value = '';
+            document.getElementById('consumerAddress').value = '';
+            document.getElementById('installationCapacity').value = '';
+            document.getElementById('consumerNotes').value = '';
+            document.getElementById('latitude').value = '';
+            document.getElementById('longitude').value = '';
+            
+            if (miniClickMarker) {
+                miniMap.removeLayer(miniClickMarker);
+                miniClickMarker = null;
+            }
+            
+            toggleAddForm();
+            alert('Location added successfully!');
+        }
+
+        function addMarker(location) {
+            const marker = L.marker([location.lat, location.lng], {
+                icon: L.icon({
+                    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+                    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                    iconSize: [25, 41],
+                    iconAnchor: [12, 41],
+                    popupAnchor: [1, -34],
+                    shadowSize: [41, 41]
+                })
+            }).addTo(map);
+
+            const popupContent = `
+                <div style="padding: 10px; min-width: 200px;">
+                    <h3 style="margin: 0 0 10px 0; color: #333; font-size: 1.2em;">${location.name}</h3>
+                    ${location.phone ? `<p style="margin: 5px 0;"><strong>📞 Phone:</strong> ${location.phone}</p>` : ''}
+                    <p style="margin: 5px 0;"><strong>📍 Address:</strong> ${location.address}</p>
+                    ${location.capacity ? `<p style="margin: 5px 0;"><strong>⚡ Capacity:</strong> ${location.capacity}</p>` : ''}
+                    ${location.notes ? `<p style="margin: 5px 0;"><strong>📝 Notes:</strong> ${location.notes}</p>` : ''}
+                    <p style="margin: 5px 0; font-size: 0.9em; color: #999;"><strong>Added:</strong> ${location.date}</p>
+                </div>
+            `;
+
+            marker.bindPopup(popupContent);
+            markers[location.id] = marker;
+        }
+
+        function displayLocations(filteredLocations = null) {
+            const list = document.getElementById('locationList');
+            const locsToDisplay = filteredLocations || locations;
+
+            if (locsToDisplay.length === 0) {
+                list.innerHTML = '<div class="no-results">No locations found</div>';
+                document.getElementById('locationCount').textContent = 'Total Locations: 0';
+                return;
+            }
+
+            list.innerHTML = locsToDisplay.map(loc => `
+                <div class="location-item" onclick="focusLocation(${loc.id})">
+                    <button class="btn btn-danger delete-btn" onclick="deleteLocation(event, ${loc.id})">Delete</button>
+                    <h3>${loc.name}</h3>
+                    <p>📍 ${loc.address}</p>
+                    ${loc.phone ? `<p>📞 ${loc.phone}</p>` : ''}
+                    ${loc.capacity ? `<p>⚡ ${loc.capacity}</p>` : ''}
+                    <p class="date">Added: ${loc.date}</p>
+                </div>
+            `).join('');
+
+            document.getElementById('locationCount').textContent = `Total Locations: ${locations.length}${filteredLocations ? ` (Showing: ${filteredLocations.length})` : ''}`;
+        }
+
+        function focusLocation(id) {
+            const location = locations.find(loc => loc.id === id);
+            const marker = markers[id];
+            
+            if (location && marker) {
+                map.setView([location.lat, location.lng], 15);
+                marker.openPopup();
+                
+                // Highlight selected location
+                document.querySelectorAll('.location-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                event.target.closest('.location-item').classList.add('active');
+            }
+        }
+
+        function deleteLocation(event, id) {
+            event.stopPropagation();
+            
+            if (confirm('Are you sure you want to delete this location?')) {
+                // Remove marker from map
+                if (markers[id]) {
+                    map.removeLayer(markers[id]);
+                    delete markers[id];
+                }
+                
+                // Remove from locations array
+                locations = locations.filter(loc => loc.id !== id);
+                saveToStorage();
+                displayLocations();
+            }
+        }
+
+        function searchLocations() {
+            const query = document.getElementById('searchBox').value.toLowerCase().trim();
+            
+            if (!query) {
+                displayLocations();
+                return;
+            }
+
+            const filtered = locations.filter(loc => 
+                loc.name.toLowerCase().includes(query) ||
+                loc.address.toLowerCase().includes(query) ||
+                (loc.phone && loc.phone.includes(query)) ||
+                (loc.capacity && loc.capacity.toLowerCase().includes(query))
+            );
+
+            displayLocations(filtered);
+        }
+
+        // Search on Enter key
+        document.getElementById('searchBox').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchLocations();
+            }
+        });
+
+        function saveToStorage() {
+            localStorage.setItem('solarLocations', JSON.stringify(locations));
+        }
+
+        function loadLocations() {
+            const stored = localStorage.getItem('solarLocations');
+            if (stored) {
+                locations = JSON.parse(stored);
+                displayLocations();
+                locations.forEach(loc => addMarker(loc));
+                
+                // Fit map to show all markers
+                if (locations.length > 0) {
+                    const bounds = L.latLngBounds(locations.map(loc => [loc.lat, loc.lng]));
+                    map.fitBounds(bounds);
+                }
+            }
+        }
+
+        // Initialize map when page loads
+        window.addEventListener('load', initMap);
+    </script>
+</body>
+</html>
