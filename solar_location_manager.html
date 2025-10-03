@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Solar Installation Locations</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+<script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+
     <style>
         * {
             margin: 0;
@@ -434,6 +437,15 @@
             }).addTo(map);
 
             loadLocations();
+
+            L.Routing.control({
+  waypoints: [
+    L.latLng(START_LAT, START_LNG), // Replace with user's start coordinates
+    L.latLng(DEST_LAT, DEST_LNG)    // Replace with target destination coordinates (selected on your map)
+  ],
+  routeWhileDragging: true
+}).addTo(map);
+
         }
 
         function initMiniMap() {
